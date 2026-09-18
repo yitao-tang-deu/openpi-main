@@ -90,14 +90,66 @@ git switch -c improve-yitao
 uv run python benchmark_pytorch.py --compile off \
   --warmup 5 --runs 100 --output results/pytorch/C
 
+# C：改进代码，不启用 compile, 启用serial
+uv run python benchmark_pytorch.py --image-batching serial --compile off \
+  --warmup 5 --runs 100 --output results/pytorch/C
+
 # D：改进代码，启用 compile
 uv run python benchmark_pytorch.py --compile max-autotune \
+  --warmup 5 --runs 100 --output results/pytorch/D
+
+# D：改进代码，启用 compile, 启用serial
+uv run python benchmark_pytorch.py --image-batching serial --compile max-autotune \
   --warmup 5 --runs 100 --output results/pytorch/D
 ```
 
 保留 A/B 结果文件。普通 `git switch` 不会自动备份实验结果；若使用另一份仓库运行 C/D，先复制 A/B 的 `.json` 和 `.output.npz` 到相同结果目录。
 
 ## 4. 对比结果
+
+```bash
+# results
+# 1. 确认当前分支
+git branch --show-current
+# 应输出 improve-yitao
+
+# 2. 先拉取最新远程状态，避免冲突
+git fetch origin
+
+# 3. 尝试从远程 main 检出 results 文件夹
+git checkout origin/main -- results/
+
+# 4. 查看状态，确认只多了 results 下的文件
+git status
+
+# 5. 提交
+git commit -m "从main同步traces文件夹内容"
+
+# 6. 推送到远程 improve-yitao
+git push origin improve-yitao
+```
+
+```bash
+# traces
+# 1. 确认当前分支
+git branch --show-current
+# 应输出 improve-yitao
+
+# 2. 先拉取最新远程状态，避免冲突
+git fetch origin
+
+# 3. 尝试从远程 main 检出 traces 文件夹
+git checkout origin/main -- traces/
+
+# 4. 查看状态，确认只多了 traces 下的文件
+git status
+
+# 5. 提交
+git commit -m "从main同步traces文件夹内容"
+
+# 6. 推送到远程 improve-yitao
+git push origin improve-yitao
+```
 
 ```bash
 # 原始代码的 compile 收益：A / B
