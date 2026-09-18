@@ -21,6 +21,7 @@ def get_safe_dtype(target_dtype, device_type):
             return torch.float64
     return target_dtype
 
+
 # 将一维的推理时间升维以学习复杂的时间依赖关系。
 def create_sinusoidal_pos_embedding(
     time: torch.tensor, dimension: int, min_period: float, max_period: float, device="cpu"
@@ -41,12 +42,14 @@ def create_sinusoidal_pos_embedding(
     sin_input = scaling_factor[None, :] * time[:, None]
     return torch.cat([torch.sin(sin_input), torch.cos(sin_input)], dim=1)
 
+
 # 构造beta分布用于训练时间采样
 def sample_beta(alpha, beta, bsize, device):
     alpha_t = torch.as_tensor(alpha, dtype=torch.float32, device=device)
     beta_t = torch.as_tensor(beta, dtype=torch.float32, device=device)
     dist = torch.distributions.Beta(alpha_t, beta_t)
     return dist.sample((bsize,))
+
 
 # 划分相互attention范围
 def make_att_2d_masks(pad_masks, att_masks):
@@ -114,7 +117,7 @@ class PI0Pytorch(nn.Module):
 
         # Initialize gradient checkpointing flag
         self.gradient_checkpointing_enabled = False
-#检查openpi专用的siglip库是否安装正确
+        # 检查openpi专用的siglip库是否安装正确
         msg = "transformers_replace is not installed correctly. Please install it with `uv pip install transformers==4.53.2` and `cp -r ./src/openpi/models_pytorch/transformers_replace/* .venv/lib/python3.11/site-packages/transformers/`."
         try:
             from transformers.models.siglip import check
@@ -123,7 +126,8 @@ class PI0Pytorch(nn.Module):
                 raise ValueError(msg)
         except ImportError:
             raise ValueError(msg) from None
-#梯度检查点，减少GPU内存使用，原理是不保存中间量后，需要用就重新算一次
+
+    # 梯度检查点, 减少GPU内存使用, 原理是不保存中间量后, 需要用就重新算一次
     def gradient_checkpointing_enable(self):
         """Enable gradient checkpointing for memory optimization."""
         self.gradient_checkpointing_enabled = True
@@ -145,7 +149,8 @@ class PI0Pytorch(nn.Module):
     def is_gradient_checkpointing_enabled(self):
         """Check if gradient checkpointing is enabled."""
         return self.gradient_checkpointing_enabled
-#应用梯度检查点，将forward函数中保存量大的用本函数包装即可
+
+    # 应用梯度检查点, 将forward函数中保存量大的用本函数包装即可
     def _apply_checkpoint(self, func, *args, **kwargs):
         """Helper method to apply gradient checkpointing if enabled."""
         if self.gradient_checkpointing_enabled and self.training:
@@ -153,12 +158,14 @@ class PI0Pytorch(nn.Module):
                 func, *args, use_reentrant=False, preserve_rng_state=False, **kwargs
             )
         return func(*args, **kwargs)
-#将attention mask升维，转换成transformer机制需要的形式，这样计算下来就刚好是“不注意”
+
+    # 将attention mask升维, 转换成transformer机制需要的形式, 这样计算下来就刚好是“不注意”
     def _prepare_attention_masks_4d(self, att_2d_masks):
         """Helper method to prepare 4D attention masks for transformer."""
         att_2d_masks_4d = att_2d_masks[:, None, :, :]
         return torch.where(att_2d_masks_4d, 0.0, -2.3819763e38)
-#预处理observation，分开不同类型token，以便后续输入
+
+    # 预处理observation, 分开不同类型token, 以便后续输入
     def _preprocess_observation(self, observation, *, train=True):
         """Helper method to preprocess observation."""
         observation = _preprocessing.preprocess_observation_pytorch(observation, train=train)
@@ -178,12 +185,14 @@ class PI0Pytorch(nn.Module):
             dtype=torch.float32,
             device=device,
         )
-#用beta分布采样时间
+
+    # 用beta分布采样时间
     def sample_time(self, bsize, device):
         time_beta = sample_beta(1.5, 1.0, bsize, device)
         time = time_beta * 0.999 + 0.001
         return time.to(dtype=torch.float32, device=device)
-#预处理图像与语言信息，将原始图片、语言输入Gemma转化为token
+
+    # 预处理图像与语言信息, 将原始图片、语言输入Gemma转化为token
     def embed_prefix(
         self, images, img_masks, lang_tokens, lang_masks
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -234,7 +243,8 @@ class PI0Pytorch(nn.Module):
         att_masks = att_masks[None, :].expand(bsize, len(att_masks))
 
         return embs, pad_masks, att_masks
-#这之后，每个tensor都是batch * token数量 * token维度的矩阵（att_masks没有token维度，每个值为bool）
+
+    # 这之后, 每个tensor都是batch * token数量 * token维度的矩阵 (att_masks没有token维度, 每个值为bool)
     def embed_suffix(self, state, noisy_actions, timestep):
         """Embed state, noisy_actions, timestep to prepare for Expert Gemma processing."""
         embs = []
@@ -276,7 +286,8 @@ class PI0Pytorch(nn.Module):
         if not self.pi05:
             time_emb = time_emb[:, None, :].expand_as(action_emb)
             action_time_emb = torch.cat([action_emb, time_emb], dim=2)
-            # 上面这一步是把时间步扩展成与action相同维度，然后拼接，比如action是[5,10,100],时间步是[5,60],拼接后是[5,10,160]
+
+            # 上面这一步是把时间步扩展成与action相同维度, 然后拼接, 比如action是[5,10,100], 时间步是[5,60], 拼接后是[5,10,160]
             # Apply MLP layers
             def mlp_func(action_time_emb):
                 x = self.action_time_mlp_in(action_time_emb)
@@ -313,7 +324,8 @@ class PI0Pytorch(nn.Module):
         att_masks = att_masks[None, :].expand(bsize, len(att_masks))
 
         return embs, pad_masks, att_masks, adarms_cond
-#跟上面的embed_suffix类似。最终输出的是中间推理动作与时间步骤拼接的tensor
+
+    # 跟上面的embed_suffix类似. 最终输出的是中间推理动作与时间步骤拼接的tensor
     def forward(self, observation, actions, noise=None, time=None) -> Tensor:
         """Do a full training forward pass and compute the loss (batch_size x num_steps x num_motors)"""
         images, img_masks, lang_tokens, lang_masks, state = self._preprocess_observation(observation, train=True)
