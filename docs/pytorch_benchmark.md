@@ -20,6 +20,39 @@ mkdir -p results/pytorch traces/pytorch
 git branch --show-current
 ```
 
+首次运行前，安装项目定制的 Transformers 文件。若初始化报 `transformers_replace is not installed correctly`，在仓库根目录执行以下命令；目标路径从实际 Python 环境获取，不写死 Python 3.11：
+
+```bash
+uv sync
+uv run --no-sync python - <<'PY'
+from pathlib import Path
+import shutil
+import transformers
+
+assert transformers.__version__ == "4.53.2", transformers.__version__
+source = Path("src/openpi/models_pytorch/transformers_replace")
+target = Path(transformers.__file__).resolve().parent
+assert source.is_dir(), source
+for path in source.rglob("*.py"):
+    destination = target / path.relative_to(source)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(path, destination)
+print(f"Installed project Transformers files into {target}")
+PY
+
+uv run --no-sync python - <<'PY'
+import transformers
+from transformers.models.siglip import check
+from transformers.models.gemma import modeling_gemma
+
+assert check.check_whether_transformers_replace_is_installed_correctly()
+assert "cond" in __import__("inspect").signature(modeling_gemma.GemmaRMSNorm.forward).parameters
+print("Transformers replacement OK:", transformers.__version__, transformers.__file__)
+PY
+```
+
+若之后重装或同步时重新安装了 Transformers，需再次复制并验证。该操作只修改当前虚拟环境中的 Transformers 文件。
+
 默认测试 Pi0.5、batch=1、10 步去噪、固定 seed=0。每组先跑一次首调用，再预热 5 次，正式测量 100 次。四组使用同一张空闲 GPU，依次运行。
 
 默认随机权重和假观测，只用于性能测试。如使用真实权重，下面所有测试命令都加上同一个 `--checkpoint /path/to/model.safetensors`。改进若改变了随机初始化顺序，必须使用相同 checkpoint 才能保证权重一致。
