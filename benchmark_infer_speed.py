@@ -30,9 +30,16 @@ def _random_observation(config: pi0_config.Pi0Config, batch_size: int, rng):
 
 
 def benchmark_inference(
-    batch_size: int, num_steps: int, warmup_runs: int, test_runs: int,
-    *, mode: str = "latency", queue_depth: int = 4, seed: int = 0,
-    nvtx_enabled: bool = False, json_path: str | None = None,
+    batch_size: int,
+    num_steps: int,
+    warmup_runs: int,
+    test_runs: int,
+    *,
+    mode: str = "latency",
+    queue_depth: int = 4,
+    seed: int = 0,
+    nvtx_enabled: bool = False,
+    json_path: str | None = None,
 ) -> dict:
     """Measure device-resident synthetic inference, excluding policy transforms and I/O.
 
@@ -95,8 +102,12 @@ def benchmark_inference(
 
     result = {
         "workload": "random_weights_synthetic_device_resident_pi0",
-        "mode": mode, "batch_size": batch_size, "num_steps": num_steps,
-        "warmup_runs": warmup_runs, "test_runs": test_runs, "seed": seed,
+        "mode": mode,
+        "batch_size": batch_size,
+        "num_steps": num_steps,
+        "warmup_runs": warmup_runs,
+        "test_runs": test_runs,
+        "seed": seed,
         "queue_depth": queue_depth if mode == "throughput" else 1,
         "first_call_ms": first_call_ms,  # Includes compilation/autotuning and execution.
         "measurement_seconds": measurement_seconds,
@@ -104,12 +115,15 @@ def benchmark_inference(
         "batches_per_second": test_runs / measurement_seconds,
         "jax_version": jax.__version__,
         "jaxlib_version": importlib.metadata.version("jaxlib"),
-        "backend": jax.default_backend(), "devices": [str(d) for d in jax.devices()],
+        "backend": jax.default_backend(),
+        "devices": [str(d) for d in jax.devices()],
         "xla_flags": os.environ.get("XLA_FLAGS", ""),
-        "nvtx_enabled": nvtx_enabled, "model_config": repr(config),
+        "nvtx_enabled": nvtx_enabled,
+        "model_config": repr(config),
     }
     if latencies_ms:
         ordered = sorted(latencies_ms)
+
         # Linear interpolation, also defined when only one sample is requested.
         def percentile(q):
             index = (len(ordered) - 1) * q
@@ -119,8 +133,11 @@ def benchmark_inference(
 
         result["latencies_ms"] = latencies_ms
         result["latency_ms"] = {
-            "mean": statistics.mean(latencies_ms), "min": min(latencies_ms),
-            "max": max(latencies_ms), "p50": percentile(0.5), "p95": percentile(0.95),
+            "mean": statistics.mean(latencies_ms),
+            "min": min(latencies_ms),
+            "max": max(latencies_ms),
+            "p50": percentile(0.5),
+            "p95": percentile(0.95),
             "stddev": statistics.pstdev(latencies_ms),
         }
     print(json.dumps(result, indent=2))
@@ -144,9 +161,15 @@ def main() -> None:
     if min(args.batch_size, args.num_steps, args.runs, args.queue_depth) < 1 or args.warmup < 0:
         parser.error("batch-size, num-steps, runs and queue-depth must be positive; warmup >= 0")
     benchmark_inference(
-        args.batch_size, args.num_steps, args.warmup, args.runs,
-        mode=args.mode, queue_depth=args.queue_depth, seed=args.seed,
-        nvtx_enabled=args.nvtx, json_path=args.json_path,
+        args.batch_size,
+        args.num_steps,
+        args.warmup,
+        args.runs,
+        mode=args.mode,
+        queue_depth=args.queue_depth,
+        seed=args.seed,
+        nvtx_enabled=args.nvtx,
+        json_path=args.json_path,
     )
 
 

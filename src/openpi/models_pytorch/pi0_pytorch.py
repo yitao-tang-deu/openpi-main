@@ -384,7 +384,8 @@ class PI0Pytorch(nn.Module):
         v_t = self._apply_checkpoint(action_out_proj_func, suffix_out)
 
         return F.mse_loss(u_t, v_t, reduction="none")
-#单步推理
+
+    # 单步推理
     @torch.no_grad()
     def sample_actions(self, device, observation, noise=None, num_steps=10) -> Tensor:
         """Do a full inference forward and compute the action (batch_size x num_steps x num_motors)"""
