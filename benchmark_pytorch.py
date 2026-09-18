@@ -127,7 +127,8 @@ def main():
     for tensor in (*cpu_images.values(), cpu_state, cpu_tokens, cpu_noise):
         input_digest.update(tensor.numpy().tobytes())
     observation = Observation(
-        images={key: value.to(device) for key, value in cpu_images.items()},
+        # SigLIP expects NCHW; convert before timing while preserving seeded pixels.
+        images={key: value.permute(0, 3, 1, 2).contiguous().to(device) for key, value in cpu_images.items()},
         image_masks={key: torch.ones(batch, dtype=torch.bool, device=device) for key in camera_keys},
         state=cpu_state.to(device),
         tokenized_prompt=cpu_tokens.to(device),
