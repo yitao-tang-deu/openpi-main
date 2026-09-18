@@ -1,0 +1,76 @@
+{
+  "label": "traces/pytorch/A_nsys",
+  "workload": "synthetic_device_resident_sample_actions",
+  "weights": "random",
+  "checkpoint": null,
+  "checkpoint_sha256": null,
+  "compile_requested": "off",
+  "compile_verified_by_trace": false,
+  "profile": "nsys",
+  "valid_for_formal_timing": false,
+  "stage_labels": true,
+  "model_config": "Pi0Config(action_dim=32, action_horizon=50, max_token_len=200, dtype='bfloat16', paligemma_variant='gemma_2b', action_expert_variant='gemma_300m', pi05=True, discrete_state_input=True, pytorch_compile_mode=None)",
+  "batch_size": 1,
+  "num_steps": 10,
+  "seed": 0,
+  "input_sha256": "88137500bbaf603883643657dd5952a77cb035d4f0fde4608fce8c00af990bc2",
+  "warmup_runs_after_first_call": 5,
+  "measured_runs": 5,
+  "first_call_ms_including_compile_and_execution": 679.2348369490355,
+  "latency_ms": {
+    "mean": 429.6358428429812,
+    "p50": 429.3057741597295,
+    "p90": 431.62293937057257,
+    "p95": 432.026416156441,
+    "min": 427.27361992001534,
+    "max": 432.4298929423094,
+    "stddev": 1.7245636352041138
+  },
+  "latencies_ms": [
+    428.75741817988455,
+    430.41250901296735,
+    429.3057741597295,
+    432.4298929423094,
+    427.27361992001534
+  ],
+  "serial_samples_per_second": 2.3275525463211166,
+  "memory_bytes": {
+    "allocated_after_warmup": 7495347200,
+    "peak_allocated_measurement": 7644993536,
+    "peak_reserved_measurement": 7767851008
+  },
+  "output_finite": true,
+  "environment": {
+    "python": "3.11.16",
+    "torch": "2.7.1+cu126",
+    "cuda": "12.6",
+    "transformers": "4.53.2",
+    "gpu": "NVIDIA GeForce RTX 4090",
+    "gpu_memory_bytes": 50866487296,
+    "device": "cuda:0",
+    "float32_matmul_precision": "high",
+    "cudnn_benchmark": false,
+    "env": {
+      "JAX_PLATFORMS": "cpu",
+      "CUDA_VISIBLE_DEVICES": "0",
+      "CUDA_INJECTION64_PATH": "/usr/local/cuda-12.8/nsight-systems-2024.6.2/target-linux-x64/libToolsInjection64.so",
+      "CUDA_MODULE_LOADING": "LAZY"
+    }
+  },
+  "git": {
+    "commit": "4cdb0418f1af914c1b4b3500dea08848361a2cd2",
+    "status": "?? traces/"
+  },
+  "source_sha256": {
+    "src/openpi/models_pytorch/gemma_pytorch.py": "225092e06509da0ae37bb9dca55c00d2804255bb1496f7c8700304b4c52a95eb",
+    "src/openpi/models_pytorch/pi0_pytorch.py": "bbe0191c614b577528af1c8a1ec1bdadf200575df49b9ca37513f7b90e249f3c",
+    "src/openpi/models_pytorch/preprocessing_pytorch.py": "6a44e91be2d7a724c6140d2cc98ed0a631b8d38bbb29f63b380a0a19f903bbf6",
+    "src/openpi/models_pytorch/transformers_replace/models/gemma/configuration_gemma.py": "26fd0d0f52730ab32b6f337eb73ae9a26cb71ae0915bc49eced1d0e2ed8d0ec6",
+    "src/openpi/models_pytorch/transformers_replace/models/gemma/modeling_gemma.py": "17eeb54e277939e58cd6f8a92719a275e36baf0c9f463b2754227d42f87aedde",
+    "src/openpi/models_pytorch/transformers_replace/models/paligemma/modeling_paligemma.py": "c945d330b829264f927f3ee5339f977238631772de07a28e855e265bb85fd53c",
+    "src/openpi/models_pytorch/transformers_replace/models/siglip/check.py": "466e8eb7887ac5ccc98118a3169298d6ab65a284d834bae74751e3854dbc4245",
+    "src/openpi/models_pytorch/transformers_replace/models/siglip/modeling_siglip.py": "ef2e99500f263fdd78db9d4d9a255e29d844eb92f53c25ad640f8056700ef84b",
+    "src/openpi/models/pi0_config.py": "d321858c30b398126035ea2b6da09e1c422eeeebb5ebf8df631daf9dc77647fa",
+    "benchmark_pytorch.py": "0fe31cae0b03916d08e05cf7abe60f869eff4d26b90d8f8c414bf99783af4b44"
+  }
+}
