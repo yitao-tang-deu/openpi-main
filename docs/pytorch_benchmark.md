@@ -122,3 +122,31 @@ uv run nsys profile --trace=cuda,nvtx --sample=none \
 用 Nsight Systems 打开 `.nsys-rep`，重点比较耗时最多的 kernel、调用次数、去噪步间同步和 GPU 空隙。同步等待时间不能直接当成可节省时间。Compile 参数表示请求编译，实际编译区域需要结合 trace 确认。
 
 脚本已做本地静态检查，仍需在服务器验证 CUDA 执行。初次运行可先用独立输出前缀，设置 `--warmup 1 --runs 1` 验证环境。
+
+## 6. 当前分支：相机合批消融
+
+PyTorch eval 默认启用相机合批：将同形状、同 dtype、同 device 的相机沿 batch 维拼接，视觉编码一次后拆回原相机顺序。相机 mask 和语言 token 的拼接保持原逻辑。训练模式和不兼容输入保留逐相机执行。可通过 `Pi0Config(pytorch_camera_batching=False)` 关闭；JAX 路径不受该配置影响。
+
+在当前分支、同一 checkpoint 下直接比较，无需切换分支。以下命令在 Linux GPU 服务器运行，将 checkpoint 路径替换为实际文件：
+
+```bash
+for mode in off max-autotune; do
+  for cameras in serial batched; do
+    uv run python benchmark_pytorch.py --compile "$mode" \
+      --image-batching "$cameras" --checkpoint /path/to/model.safetensors \
+      --warmup 5 --runs 100 --output "results/pytorch/cameras_${mode}_${cameras}"
+  done
+  uv run python compare_pytorch_benchmarks.py \
+    "results/pytorch/cameras_${mode}_serial" "results/pytorch/cameras_${mode}_batched"
+done
+```
+
+检查输出误差、P50/P95 和 JSON 中的峰值显存。合批扩大视觉编码的同时存活激活，可能增加峰值显存；不同 GEMM batch 形状也可能引入浮点误差，不能要求逐位一致。继续用 `--batch-size 2` 验证多样本顺序，并使用新输出前缀。正式结论应按上文重复 3 轮。
+
+需要定位时，在第 5 节 nsys 命令中分别加 `--image-batching serial` / `--image-batching batched`。比较视觉阶段 kernel 形状、耗时与调用数量；合批不要求出现多个 CUDA stream。尚未提供 CUDA 速度或显存收益实测。
+
+本地验证：在隔离的 Windows / Python 3.14 / PyTorch 2.14 CPU 环境，合批单元测试 12 项通过（batch=1/2/4、两种图像布局、串行回退、`torch.compile` eager backend 的 fullgraph 捕获）。完整 prefix/mask/训练路径集成测试因缺少 JAX 项目依赖而跳过；项目固定版本 PyTorch 2.7.1、CUDA/Inductor 与真实模型数值仍需服务器验证：
+
+```bash
+uv run pytest -q src/openpi/models_pytorch/image_batching_test.py
+```

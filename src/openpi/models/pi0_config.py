@@ -33,6 +33,8 @@ class Pi0Config(_model.BaseModelConfig):
     discrete_state_input: bool = None  # type: ignore
 
     pytorch_compile_mode: str | None = "max-autotune"
+    # Combine compatible camera views into one vision batch during PyTorch eval.
+    pytorch_camera_batching: bool = True
 
     def __post_init__(self):
         if self.max_token_len is None:

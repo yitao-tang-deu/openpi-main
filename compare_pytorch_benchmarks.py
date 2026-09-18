@@ -3,6 +3,7 @@
 import argparse
 import json
 from pathlib import Path
+import re
 
 
 def main():
@@ -25,9 +26,11 @@ def main():
     workload_keys = ("workload", "weights", "checkpoint_sha256", "batch_size", "num_steps", "seed", "input_sha256")
     differences = [key for key in workload_keys if baseline[key] != candidate[key]]
 
-    # Config differs legitimately only in the compile mode for A/B.
+    # Execution options do not change the workload. Also accept older artifacts
+    # created before the camera-batching field was introduced.
     def normalized_config(result):
-        return result["model_config"].replace("pytorch_compile_mode='max-autotune'", "pytorch_compile_mode=None")
+        config = result["model_config"].replace("pytorch_compile_mode='max-autotune'", "pytorch_compile_mode=None")
+        return re.sub(r", pytorch_camera_batching=(?:True|False)", "", config)
 
     if normalized_config(baseline) != normalized_config(candidate):
         differences.append("model_config")
@@ -50,6 +53,10 @@ def main():
             {
                 "baseline": str(args.baseline),
                 "candidate": str(args.candidate),
+                "image_batching": {
+                    "baseline": baseline.get("image_batching", "serial"),
+                    "candidate": candidate.get("image_batching", "serial"),
+                },
                 "p50_speedup": baseline["latency_ms"]["p50"] / candidate["latency_ms"]["p50"],
                 "mean_speedup": baseline["latency_ms"]["mean"] / candidate["latency_ms"]["mean"],
                 "baseline_latency_ms": baseline["latency_ms"],

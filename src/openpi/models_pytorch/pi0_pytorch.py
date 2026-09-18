@@ -8,6 +8,7 @@ import torch.nn.functional as F  # noqa: N812
 
 import openpi.models.gemma as _gemma
 from openpi.models_pytorch.gemma_pytorch import PaliGemmaWithExpertModel
+from openpi.models_pytorch.image_batching import embed_camera_images
 import openpi.models_pytorch.preprocessing_pytorch as _preprocessing
 
 
@@ -203,13 +204,15 @@ class PI0Pytorch(nn.Module):
         pad_masks = []
         att_masks = []
 
-        # Process images
-        for img, img_mask in zip(images, img_masks, strict=True):
+        def image_embed_func(img):
+            return self._apply_checkpoint(self.paligemma_with_expert.embed_image, img)
 
-            def image_embed_func(img):
-                return self.paligemma_with_expert.embed_image(img)
-
-            img_emb = self._apply_checkpoint(image_embed_func, img)
+        image_embeddings = embed_camera_images(
+            images,
+            image_embed_func,
+            batch_cameras=self.config.pytorch_camera_batching and not self.training,
+        )
+        for img_emb, img_mask in zip(image_embeddings, img_masks, strict=True):
 
             bsize, num_img_embs = img_emb.shape[:2]
 

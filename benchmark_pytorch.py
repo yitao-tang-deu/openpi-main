@@ -18,6 +18,7 @@ def parse_args(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--compile", choices=("off", "max-autotune"), required=True)
     parser.add_argument("--model", choices=("pi0", "pi05"), default="pi05")
+    parser.add_argument("--image-batching", choices=("serial", "batched"), default="batched")
     parser.add_argument("--checkpoint", type=Path, help="Local model.safetensors; omitted = random weights")
     parser.add_argument("--batch-size", type=int, default=1)
     parser.add_argument("--num-steps", type=int, default=10)
@@ -101,6 +102,7 @@ def main():
         action_horizon=args.action_horizon,
         max_token_len=args.token_length,
         pytorch_compile_mode=None if args.compile == "off" else args.compile,
+        pytorch_camera_batching=args.image_batching == "batched",
     )
     model = PI0Pytorch(config)
     checkpoint_sha256 = None
@@ -158,6 +160,7 @@ def main():
 
         wrap(model, "_preprocess_observation", "model_preprocess")
         wrap(model, "embed_prefix", "embed_prefix")
+        wrap(model.paligemma_with_expert, "embed_image", "vision_encode")
         wrap(model, "denoise_step", "denoise_step")
         wrap(model.paligemma_with_expert.paligemma.language_model, "forward", "vlm_prefix")
 
@@ -229,6 +232,7 @@ def main():
         "checkpoint": str(args.checkpoint.resolve()) if args.checkpoint else None,
         "checkpoint_sha256": checkpoint_sha256,
         "compile_requested": args.compile,
+        "image_batching": args.image_batching,
         "compile_verified_by_trace": False,
         "profile": args.profile,
         "valid_for_formal_timing": args.profile == "none",
