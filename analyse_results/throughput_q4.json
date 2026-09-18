@@ -1,0 +1,23 @@
+{
+  "workload": "random_weights_synthetic_device_resident_pi0",
+  "mode": "throughput",
+  "batch_size": 1,
+  "num_steps": 10,
+  "warmup_runs": 3,
+  "test_runs": 100,
+  "seed": 0,
+  "queue_depth": 4,
+  "first_call_ms": 12154.815902002156,
+  "measurement_seconds": 7.7039848221465945,
+  "samples_per_second": 12.98029556243811,
+  "batches_per_second": 12.98029556243811,
+  "jax_version": "0.5.3",
+  "jaxlib_version": "0.5.3",
+  "backend": "gpu",
+  "devices": [
+    "cuda:0"
+  ],
+  "xla_flags": "",
+  "nvtx_enabled": false,
+  "model_config": "Pi0Config(action_dim=32, action_horizon=50, max_token_len=48, dtype='bfloat16', paligemma_variant='gemma_2b', action_expert_variant='gemma_300m', pi05=False, discrete_state_input=False, pytorch_compile_mode='max-autotune')"
+}

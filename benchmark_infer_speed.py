@@ -72,11 +72,17 @@ def benchmark_inference(
 
     with annotate("first_call"):
         start = time.perf_counter()
-        jax.block_until_ready(sample_fn(keys[0], observation, num_steps=num_steps))
+        with annotate("sample_action"):
+            output = sample_fn(keys[0], observation, num_steps=num_steps)
+        with annotate("sync_wait"):
+            jax.block_until_ready(output)
         first_call_ms = (time.perf_counter() - start) * 1000
     with annotate("warmup"):
         for key in keys[1 : 1 + warmup_runs]:
-            jax.block_until_ready(sample_fn(key, observation, num_steps=num_steps))
+            with annotate("sample_action"):
+                output = sample_fn(key, observation, num_steps=num_steps)
+            with annotate("sync_wait"):
+                jax.block_until_ready(output)
 
     latencies_ms = []
     measured_keys = keys[1 + warmup_runs :]
@@ -86,17 +92,21 @@ def benchmark_inference(
             for run_index, key in enumerate(measured_keys):
                 with annotate(f"infer_{run_index:04d}"):
                     start = time.perf_counter()
-                    output = sample_fn(key, observation, num_steps=num_steps)
-                    jax.block_until_ready(output)
+                    with annotate("sample_action"):
+                        output = sample_fn(key, observation, num_steps=num_steps)
+                    with annotate("sync_wait"):
+                        jax.block_until_ready(output)
                     latencies_ms.append((time.perf_counter() - start) * 1000)
         else:
             for offset in range(0, test_runs, queue_depth):
                 with annotate(f"group_{offset:04d}"):
-                    outputs = [
-                        sample_fn(key, observation, num_steps=num_steps)
-                        for key in measured_keys[offset : offset + queue_depth]
-                    ]
-                    jax.block_until_ready(outputs)
+                    with annotate("sample_action"):
+                        outputs = [
+                            sample_fn(key, observation, num_steps=num_steps)
+                            for key in measured_keys[offset : offset + queue_depth]
+                        ]
+                    with annotate("sync_wait"):
+                        jax.block_until_ready(outputs)
                     del outputs
         measurement_seconds = time.perf_counter() - measurement_start
 
